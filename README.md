@@ -1,97 +1,155 @@
-# data-in-microsoft-graph-api
+# microsoft-graph-to-object-storage
 
-Este projeto em Python captura dados de arquivos no OneDrive via Microsoft Graph API e os salva em armazenamento na nuvem (AWS S3 ou Google Cloud Storage) para criar uma camada raw de dados.
+A compact reference implementation for moving files from Microsoft Graph / OneDrive into cloud object storage.
 
-## Funcionalidades
+This repository captures a practical ingestion pattern: authenticate with Microsoft Graph, retrieve a file from OneDrive, and land it in a raw storage layer on Amazon S3 or Google Cloud Storage. It is intentionally small and easy to adapt, making it useful as a starting point for production-oriented data ingestion workflows, internal accelerators, or architecture prototypes.
 
-- Autenticação com Microsoft Graph API usando MSAL
-- Download de arquivos do OneDrive
-- Upload para AWS S3 ou Google Cloud Storage
-- Estrutura para camada raw de dados
+The current implementation focuses on a direct file transfer flow. It is best used as a reusable foundation that teams can extend with their own orchestration, metadata handling, retry policies, file discovery rules, and deployment conventions.
 
-## Pré-requisitos
+## What This Repository Covers
 
-- Python 3.8+
-- Conta Microsoft com acesso ao OneDrive
-- Aplicativo registrado no Azure AD para Graph API
-- Credenciais para AWS S3 ou GCS
+- Microsoft Graph authentication using MSAL and client credentials
+- File download from OneDrive through the Microsoft Graph API
+- File landing to Amazon S3 or Google Cloud Storage
+- Environment-based configuration for credentials and target storage
 
-## Instalação
+## Current Scope
 
-1. Clone o repositório
-2. Instale as dependências:
-   ```
-   pip install -r requirements.txt
-   ```
-   ou
-   ```
-   make install
-   ```
-3. Copie `.env.example` para `.env` e preencha com suas credenciais
+Included today:
 
-## Configuração
+- A single Python entry point for Graph-to-storage transfer
+- Support for one file path per execution
+- Storage targets for S3 and GCS
+- Basic automated tests around token acquisition and file download behavior
 
-### Microsoft Graph API
+Not included yet:
 
-1. Registre um aplicativo no [Azure Portal](https://portal.azure.com)
-2. Adicione permissões: `Files.Read.All` ou `Files.Read`
-3. Obtenha CLIENT_ID, CLIENT_SECRET, TENANT_ID
-4. USER_ID é o ID do usuário do OneDrive (pode ser obtido via Graph API)
+- Scheduling or orchestration
+- Recursive file discovery or folder synchronization
+- Incremental loading or state tracking
+- Structured logging, retries, or error classification
+- Packaging as a reusable Python module or CLI
+- Infrastructure-as-code or deployment automation
 
-### AWS S3
+## Architecture Overview
 
-- Configure AWS_ACCESS_KEY, AWS_SECRET_KEY, S3_BUCKET
+The current flow is intentionally straightforward:
 
-### Google Cloud Storage
+1. Acquire an application token from Microsoft Entra ID through MSAL.
+2. Request a file from OneDrive through the Microsoft Graph content endpoint.
+3. Upload the file bytes to the selected object storage target.
 
-- Configure GCS_BUCKET e GCS_CREDENTIALS_PATH (caminho para service account JSON)
+```text
+Microsoft Entra ID
+        |
+        v
+ Microsoft Graph / OneDrive
+        |
+        v
+ Python transfer script
+        |
+        +--> Amazon S3
+        |
+        +--> Google Cloud Storage
+```
 
-## Uso
+## Repository Structure
 
-Execute o script principal:
+```text
+.
+|-- src/
+|   `-- main.py
+|-- tests/
+|   |-- __init__.py
+|   `-- test_main.py
+|-- .env.example
+|-- CONTRIBUTING.md
+|-- LICENSE
+|-- Makefile
+|-- README.md
+`-- requirements.txt
+```
 
-```python
+## Configuration
+
+Copy `.env.example` to `.env` and provide the required values for your environment.
+
+Microsoft Graph:
+
+- `CLIENT_ID`
+- `CLIENT_SECRET`
+- `TENANT_ID`
+- `USER_ID`
+
+Amazon S3:
+
+- `AWS_ACCESS_KEY`
+- `AWS_SECRET_KEY`
+- `S3_BUCKET`
+
+Google Cloud Storage:
+
+- `GCS_BUCKET`
+- `GCS_CREDENTIALS_PATH`
+
+## How To Run
+
+Install dependencies:
+
+```bash
+pip install -r requirements.txt
+```
+
+or:
+
+```bash
+make install
+```
+
+Run the current entry point:
+
+```bash
 python src/main.py
 ```
 
-ou
+or:
 
 ```bash
 make run
 ```
 
-## Testes
+The example in `src/main.py` is configured with a fixed file path and target selection. For real usage, adapt the input parameters and environment variables to your project conventions.
 
-Execute os testes:
+## How To Adapt
+
+This repository is most useful when treated as a small integration baseline. Common extension points include:
+
+- replacing the hard-coded example inputs with runtime parameters
+- adding file selection or folder traversal logic
+- introducing retry, logging, and error handling standards
+- wrapping the flow in an orchestrator such as Airflow, Dagster, or a scheduler
+- standardizing object naming, partitioning, and metadata conventions for your raw layer
+
+## Testing
+
+Run the current test suite with:
 
 ```bash
 pytest tests/
 ```
 
-ou
+or:
 
 ```bash
 make test
 ```
 
-## Estrutura do Projeto
+The existing tests validate core integration behavior at a basic level and should be expanded as the implementation grows.
 
-```
-.
-├── src/
-│   └── main.py
-├── tests/
-│   ├── __init__.py
-│   └── test_main.py
-├── .env.example
-├── .gitignore
-├── CONTRIBUTING.md
-├── LICENSE
-├── Makefile
-├── README.md
-└── requirements.txt
-```
+## Contribution
 
-## Contribuição
+See [CONTRIBUTING.md](CONTRIBUTING.md) for contribution guidelines aligned with the reference-implementation goal of this repository.
 
-Veja [CONTRIBUTING.md](CONTRIBUTING.md) para diretrizes de contribuição.
+## License
+
+This project is available under the terms of the [LICENSE](LICENSE).
